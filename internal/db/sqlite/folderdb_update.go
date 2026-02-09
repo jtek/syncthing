@@ -184,7 +184,7 @@ func (s *folderDB) Update(device protocol.DeviceID, fs []protocol.FileInfo, opti
 		return wrap(err)
 	}
 
-	s.periodicCheckpointLocked(fs)
+	//s.periodicCheckpointLocked(fs)
 	return nil
 }
 
