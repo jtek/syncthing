@@ -155,9 +155,7 @@ func (s *Service) periodic(ctx context.Context) error {
 						err := s.garbageCollectBlocklistsAndBlocksLocked(ctx, fdb, false)
 						if err != nil {	return wrap(err) }
 						return nil
-					}(); err != nil {
-						return wrap(err)
-					}
+					}(); err != nil { return wrap(err) }
 				}
 				if !fdb.namesCleanupCaughtUp() {
 					slog.DebugContext(ctx, "Catching up on names cleanups", "folder",
@@ -169,9 +167,7 @@ func (s *Service) periodic(ctx context.Context) error {
 						err := garbageCollectNamesOrVersions(ctx, fdb, "file_names", false)
 						if err != nil {	return wrap(err) }
 						return nil
-					}(); err != nil {
-						return wrap(err)
-					}
+					}(); err != nil { return wrap(err) }
 				}
 				if !fdb.versionsCleanupCaughtUp() {
 					slog.DebugContext(ctx, "Catching up on versions cleanups", "folder",
@@ -183,9 +179,7 @@ func (s *Service) periodic(ctx context.Context) error {
 						err := garbageCollectNamesOrVersions(ctx, fdb, "file_versions", false)
 						if err != nil {	return wrap(err) }
 						return nil
-					}(); err != nil {
-						return wrap(err)
-					}
+					}(); err != nil { return wrap(err) }
 				}
 			}
 			return nil
@@ -216,9 +210,7 @@ func (s *Service) periodic(ctx context.Context) error {
 			} else {
 				return tidy(ctx, fdb.sql, fdb.baseName, false)
 			}
-		}(); err != nil {
-			return wrap(err)
-		}
+		}(); err != nil { return wrap(err) }
 
 		// Update the successful GC sequence.
 		return wrap(meta.PutInt64(lastSuccessfulGCSeqKey, seq))
@@ -240,9 +232,7 @@ func tidy(ctx context.Context, db *sqlx.DB, name string, do_truncate_checkpoint 
 	defer func() { slog.DebugContext(ctx, "tidy", "database", name, "runtime", time.Since(t0)) }()
 
 	conn, err := db.Conn(ctx)
-	if err != nil {
-		return wrap(err)
-	}
+	if err != nil { return wrap(err) }
 	defer conn.Close()
 	_, _ = conn.ExecContext(ctx, `PRAGMA journal_size_limit = 8388608`)
 	// Don't try to free too many pages at once by passing a maximum
