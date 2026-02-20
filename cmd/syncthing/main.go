@@ -236,6 +236,8 @@ func main() {
 		return
 	}
 
+	// TODO is it the place ?
+	sqlite.initDrivers()
 	err = ctx.Run()
 	parser.FatalIfErrorf(err)
 }
