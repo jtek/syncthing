@@ -49,7 +49,7 @@ func WithDeleteRetention(d time.Duration) Option {
 	}
 }
 
-func Open(path string, opts ...Option) (*DB, error) {
+func Open(dbDriver string, path string, opts ...Option) (*DB, error) {
 	pragmas := []string{
 		"journal_mode = WAL",
 		"optimize = 0x10002",
@@ -69,7 +69,7 @@ func Open(path string, opts ...Option) (*DB, error) {
 	initTmpDir(path)
 
 	mainPath := filepath.Join(path, "main.db")
-	mainBase, err := openBase(mainPath, maxDBConns, pragmas, schemas, migrations)
+	mainBase, err := openBase(MainDBDriver, mainPath, maxDBConns, pragmas, schemas, migrations)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func OpenForMigration(path string) (*DB, error) {
 	initTmpDir(path)
 
 	mainPath := filepath.Join(path, "main.db")
-	mainBase, err := openBase(mainPath, 1, pragmas, schemas, migrations)
+	mainBase, err := openBase(MainDBDriver, mainPath, 1, pragmas, schemas, migrations)
 	if err != nil {
 		return nil, err
 	}

@@ -236,8 +236,6 @@ func main() {
 		return
 	}
 
-	// TODO is it the place ?
-	sqlite.initDrivers()
 	err = ctx.Run()
 	parser.FatalIfErrorf(err)
 }
@@ -964,7 +962,7 @@ func (resetDatabaseCmd) Run() error {
 type databaseStatsCmd struct{}
 
 func (c databaseStatsCmd) Run() error {
-	db, err := sqlite.Open(locations.Get(locations.Database))
+	db, err := sqlite.Open(sqlite.FolderDBDriver, locations.Get(locations.Database))
 	if err != nil {
 		return err
 	}
@@ -986,7 +984,7 @@ type databaseCountsCmd struct {
 }
 
 func (c databaseCountsCmd) Run() error {
-	db, err := sqlite.Open(locations.Get(locations.Database))
+	db, err := sqlite.Open(sqlite.FolderDBDriver, locations.Get(locations.Database))
 	if err != nil {
 		return err
 	}
@@ -1000,7 +998,7 @@ type databaseFileCmd struct {
 }
 
 func (c databaseFileCmd) Run() error {
-	db, err := sqlite.Open(locations.Get(locations.Database))
+	db, err := sqlite.Open(sqlite.FolderDBDriver, locations.Get(locations.Database))
 	if err != nil {
 		return err
 	}

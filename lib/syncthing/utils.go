@@ -146,7 +146,8 @@ func copyFile(src, dst string) error {
 
 // Opens a database
 func OpenDatabase(path string, deleteRetention time.Duration) (db.DB, error) {
-	sql, err := sqlite.Open(path, sqlite.WithDeleteRetention(deleteRetention))
+	// TODO: check this still works
+	sql, err := sqlite.Open("sqlite3", path, sqlite.WithDeleteRetention(deleteRetention))
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	dbDriver      = "sqlite"
+	FolderDBDriver      = "sqlite"
+	MainDBDriver      = "sqlite"
 	commonOptions = "_pragma=foreign_keys(1)&_pragma=recursive_triggers(1)&_pragma=synchronous(1)&_txlock=immediate"
 )
 

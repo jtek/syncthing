@@ -49,12 +49,12 @@ type baseDB struct {
 	tplInput      map[string]any
 }
 
-func initDrivers() {
+func init() {
 	registerMainDriver()
 	registerFolderDriver()
 }
 
-func openBase(path string, maxConns int, pragmas, schemaScripts, migrationScripts []string) (*baseDB, error) {
+func openBase(dbDriver string, path string, maxConns int, pragmas, schemaScripts, migrationScripts []string) (*baseDB, error) {
 	// Open the database with options to enable foreign keys and recursive
 	// triggers (needed for the delete+insert triggers on row replace).
 	pathURL := url.URL{
