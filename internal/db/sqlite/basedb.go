@@ -68,6 +68,7 @@ func openBase(dbDriver string, path string, maxConns int, pragmas, schemaScripts
 	}
 
 	sqlDB.SetMaxOpenConns(maxConns)
+	sqlDB.SetMaxIdleConns(maxConns) // never close connections for maximum cache efficiency
 
 	for _, pragma := range pragmas {
 		if _, err := sqlDB.Exec("PRAGMA " + pragma); err != nil {
