@@ -7,7 +7,6 @@
 package sqlite
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -20,7 +19,7 @@ import (
 )
 
 const (
-	maxDBConns         = 8
+	maxDBConns         = 6
 	minDeleteRetention = 24 * time.Hour
 )
 
@@ -50,12 +49,8 @@ func WithDeleteRetention(d time.Duration) Option {
 }
 
 func Open(dbDriver string, path string, opts ...Option) (*DB, error) {
-	pragmas := []string{
-		"journal_mode = WAL",
-		"optimize = 0x10002",
-		"auto_vacuum = INCREMENTAL",
-		fmt.Sprintf("application_id = %d", applicationIDMain),
-	}
+	// Use the connect hook default
+	pragmas := []string{}
 	schemas := []string{
 		"sql/schema/common/*",
 		"sql/schema/main/*",
@@ -100,12 +95,12 @@ func Open(dbDriver string, path string, opts ...Option) (*DB, error) {
 // is not a safe mode of operation for normal processing, use only for bulk
 // inserts with a close afterwards.
 func OpenForMigration(path string) (*DB, error) {
+	// these are executed after the connect hook ones
 	pragmas := []string{
 		"journal_mode = OFF",
 		"foreign_keys = 0",
 		"synchronous = 0",
 		"locking_mode = EXCLUSIVE",
-		fmt.Sprintf("application_id = %d", applicationIDMain),
 	}
 	schemas := []string{
 		"sql/schema/common/*",

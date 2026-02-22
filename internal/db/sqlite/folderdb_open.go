@@ -48,24 +48,8 @@ type folderDB struct {
 }
 
 func openFolderDB(folder, path string, deleteRetention time.Duration) (*folderDB, error) {
-	pragmas := []string{
-		"journal_mode = WAL",
-		"optimize = 0x10002",
-		"auto_vacuum = INCREMENTAL",
-		fmt.Sprintf("application_id = %d", applicationIDFolder),
-		// This avoids blocked writes to fail immediately and especially checkpoint(TRUNCATE),
-		// It depends on other connexions not locking the DB too long though (TODO)
-		"busy_timeout = 5000",
-		// even on large folders the temp store doesn't seem used for large data, memory is faster
-		"temp_store = MEMORY",
-		// Don't fsync on each commit but only during checkpoints which guarantees the DB is consistent
-		// although last transactions might be missing (this is however OK for Synchting)
-		"synchronous = NORMAL",
-		// Note: this is a max target. SQLite checkpoints might fail to keep it below depending
-		// on concurrent activity
-		"journal_size_limit = 8388608",
-		"cache_spill = FALSE", // avoids locking the DB during transactions at the cost of memory use
-	}
+	// Use connect hook defaults
+	pragmas := []string{}
 	schemas := []string{
 		"sql/schema/common/*",
 		"sql/schema/folder/*",
@@ -145,12 +129,12 @@ func openFolderDB(folder, path string, deleteRetention time.Duration) (*folderDB
 // is not a safe mode of operation for normal processing, use only for bulk
 // inserts with a close afterwards.
 func openFolderDBForMigration(folder, path string, deleteRetention time.Duration) (*folderDB, error) {
+	// executed after the default pragmas in the connect hook
 	pragmas := []string{
 		"journal_mode = OFF",
 		"foreign_keys = 0",
 		"synchronous = 0",
 		"locking_mode = EXCLUSIVE",
-		fmt.Sprintf("application_id = %d", applicationIDFolder),
 	}
 	schemas := []string{
 		"sql/schema/common/*",
