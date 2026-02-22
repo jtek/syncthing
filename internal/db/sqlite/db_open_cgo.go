@@ -20,6 +20,10 @@ const (
 	FolderDBDriver = "sqlite3_folder"
 	MainDBDriver   = "sqlite3_main"
 	commonOptions  = "_fk=true&_rt=true&_sync=1&_txlock=immediate"
+	// TODO: maybe get a better estimate ?
+	// (64 bit for integers, bools and timestamps, 512 bit for hash :
+	// 832 bits rounded up to 1024 bits = 128 bytes to have a slightly oversized cache for the indexes
+	filesRowIndexCost = 128
 )
 
 var folder_pragmas = []string{
@@ -85,8 +89,7 @@ func tuneFolderCacheSize(conn *sqlite3.SQLiteConn) {
 	// This tunes the cache size according to these index sizes
 	// Note: the dbstat virtual table giving actual size on disk is too slow and maybe not appropriate as it includes
 	// unused space in pages. So we use an estimate of the rows count multiplied by an estimate of
-	// index space used by each row (64 bit for integers, bools and timestamps, 512 bit for hash :
-	// 832 bits rounded up to 1024 bits = 128 bytes
+	// index space used by each row
 	// we count the files and blocklists tables to have a more reliable number of files
 	// as files has been seen underevaluated by a large factor
 	count_query := `SELECT CAST(SUBSTR(stat, 1, INSTR(stat, ' ') - 1) AS INTEGER) FROM sqlite_stat1 WHERE tbl = '%s' LIMIT 1`
@@ -112,8 +115,7 @@ func tuneFolderCacheSize(conn *sqlite3.SQLiteConn) {
 	}
 	count_estimate := max(files_count, blocklists_count)
 
-	// Leave room for the table to grow significantly and estimates to be off
-	target_cache_size = 128 * count_estimate * 2
+	target_cache_size = 128 * count_estimate
 	target_cache_size = min(target_cache_size, folderMaxCacheSize)
 	// Actual size is in kB
 	target_cache_size /= 1000
