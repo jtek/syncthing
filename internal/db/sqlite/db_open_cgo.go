@@ -70,19 +70,39 @@ func registerFolderDriver() {
 	sql.Register(FolderDBDriver,
 		&sqlite3.SQLiteDriver{
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-				slog.Debug("DB Connect (folder)")
+				// Get folder id from kv
+				folderName := "unknown"
+				stmt, err := conn.Prepare("SELECT value FROM kv WHERE key = 'folderID'")
+				if err != nil {
+					slog.Warn("Couldn't prepare query for folder name", "error", err)
+				} else {
+					if rows, err := stmt.Query(nil); err!= nil {
+						slog.Warn("Couldn't execute query for folder name", "error", err)
+					} else {
+						results := make([]driver.Value, len(rows.Columns()))
+						if err = rows.Next(results); err != nil {
+							slog.Warn("Couldn't fetch folder name", "error", err)
+						} else {
+							folderName = string(results[0].([]byte))
+						}
+						rows.Close()
+					}
+					stmt.Close()
+				}
+
+				slog.Debug(fmt.Sprintf("DB Connect folder: %s", folderName))
 				for _, pragma := range folder_pragmas {
 					pragma_stmt := fmt.Sprintf("PRAGMA %s", pragma)
-					slog.Debug(fmt.Sprintf("Folder: %s", pragma_stmt))
+					slog.Debug(fmt.Sprintf("Folder %s: %s", folderName, pragma_stmt))
 					conn.Exec(pragma_stmt, nil)
 				}
-				tuneFolderCacheSize(conn)
+				tuneFolderCacheSize(conn, folderName)
 				return nil
 			},
 		})
 }
 
-func tuneFolderCacheSize(conn *sqlite3.SQLiteConn) {
+func tuneFolderCacheSize(conn *sqlite3.SQLiteConn, folderName string) {
 	// the files table is repeatedly scanned to find entries to garbage collect
 	// it uses conditions on name_idx, version_idx, deleted, sequence, modified and blocklist_hash
 	// all of those have indexes except modified
@@ -97,21 +117,23 @@ func tuneFolderCacheSize(conn *sqlite3.SQLiteConn) {
 	blocklists_count := int64(0)
 	target_cache_size := int64(0)
 
+	l := slog.With("Folder", folderName)
+
 	// This is performance tuning, these are allowed to fail so log errors and continue
 	for _, table := range []string{"files", "blocklists"} {
 		stmt, err := conn.Prepare(fmt.Sprintf(count_query, table))
-		if err != nil { slog.Warn("Couldn't prepare query for cache tuning", "error", err); continue }
+		if err != nil { l.Warn("Couldn't prepare query for cache tuning", "error", err); continue }
 		rows, err := stmt.Query(nil)
-		if err != nil { slog.Warn("Couldn't execute query for cache tuning", "error", err); continue }
+		if err != nil { l.Warn("Couldn't execute query for cache tuning", "error", err); continue }
 		results := make([]driver.Value, len(rows.Columns()))
 		err = rows.Next(results)
-		if err != nil { slog.Warn("Couldn't fetch row count estimate for cache tuning", "error", err); continue }
+		if err != nil { l.Warn("Couldn't fetch row count estimate for cache tuning", "error", err); continue }
 		rows.Close()
 		stmt.Close()
 		val, ok := results[0].(int64)
-		if !ok { slog.Warn("Couldn't convert row count to int64"); continue }
+		if !ok { l.Warn("Couldn't convert row count to int64"); continue }
 		if table == "files" { files_count = val } else { blocklists_count = val }
-		slog.Debug(table, "count", val)
+		l.Debug(table, "count", val)
 	}
 	count_estimate := max(files_count, blocklists_count)
 
@@ -123,7 +145,7 @@ func tuneFolderCacheSize(conn *sqlite3.SQLiteConn) {
 		// "-size" is used to indicate the cache size in bytes instead of pages
 		pragma := fmt.Sprintf("PRAGMA cache_size = -%d", target_cache_size)
 		conn.Exec(pragma, nil)
-		slog.Info("Folder DB cache tuned", "size", target_cache_size)
+		l.Info("Folder DB cache tuned", "size", target_cache_size)
 	}
 }
 
