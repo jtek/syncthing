@@ -337,15 +337,11 @@ func tidy(ctx context.Context, db *sqlx.DB, name string, do_truncate_checkpoint 
 		}
 	}()
 
-	conn, err := db.Conn(ctx)
-	if err != nil { return wrap(err) }
-	defer conn.Close()
-
 	// Don't try to free too many pages at once by passing a maximum
-	_, _ = conn.ExecContext(ctx, fmt.Sprintf(`PRAGMA incremental_vacuum(%d)`, vacuumPages))
+	_, _ = db.ExecContext(ctx, fmt.Sprintf(`PRAGMA incremental_vacuum(%d)`, vacuumPages))
 	t1 = time.Now()
 	// This is potentially really slow on a folderDB and is called after taking the updateLock
-	if do_truncate_checkpoint { _, _ = conn.ExecContext(ctx, `PRAGMA wal_checkpoint(TRUNCATE)`) }
+	if do_truncate_checkpoint { _, _ = db.ExecContext(ctx, `PRAGMA wal_checkpoint(TRUNCATE)`) }
 	return nil
 }
 
