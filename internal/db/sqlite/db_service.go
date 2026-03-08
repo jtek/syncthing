@@ -148,7 +148,6 @@ func (s *Service) periodic(ctx context.Context) error {
 		// Get the current device sequence, for comparison in the next step.
 		seq, err := fdb.GetDeviceSequence(protocol.LocalDeviceID)
 		if err != nil { return wrap(err) }
-		slog.DebugContext(ctx, fmt.Sprintf("## %s CLEANUPS ##", fdb.logID()))
 
 		// Get the last successful GC sequence. If it's the same as the
 		// current sequence, nothing has changed and we can skip the GC
@@ -163,6 +162,7 @@ func (s *Service) periodic(ctx context.Context) error {
 		} else if db_update_detected = (seq != prev); !db_update_detected {
 			// No change in DB, but incremental cleanups might have to finish their slow walk
 			if !fdb.cleanupsCaughtUp() {
+				slog.DebugContext(ctx, fmt.Sprintf("## %s CLEANUPS catching UP ##", fdb.logID()))
 				work_done = true
 				if !fdb.filesCleanupCaughtUp() {
 					slog.DebugContext(ctx, "Catching up on files cleanups", "folder(db)", fdb.logID())
@@ -208,6 +208,8 @@ func (s *Service) periodic(ctx context.Context) error {
 						return nil
 					}(); err != nil { return wrap(err) }
 				}
+			} else {
+				slog.DebugContext(ctx, fmt.Sprintf("## %s no CLEANUP needed ##", fdb.logID()))
 			}
 			return nil
 		}
@@ -215,6 +217,7 @@ func (s *Service) periodic(ctx context.Context) error {
 		// Run the GC steps, in a function to be able to use a deferred
 		// unlock.
 		if err := func() error {
+			slog.DebugContext(ctx, fmt.Sprintf("## %s changed : CLEANUP ##", fdb.logID()))
 			fdb.updateLock.Lock()
 			defer fdb.updateLock.Unlock()
 
