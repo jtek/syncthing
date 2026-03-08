@@ -248,12 +248,14 @@ func (s *Service) periodic(ctx context.Context) error {
 	}))
 }
 
+// Compute best next window favoring aggregating successive cleanups in a single pass
 func (s *Service) nextFolderMaintenance() time.Time {
 	// Use a sensible max value in case a new Folder is created after this
 	earliestMaintenance := time.Now().Add(maxIncrementalGCPeriod)
 	s.sdb.forEachFolder(func(fdb *folderDB) error {
 		nextCleanup := fdb.nextCleanup
-		if nextCleanup.Before(earliestMaintenance) {
+		// This will prevemt a cleanup to run individually if a close one would be pending next
+		if nextCleanup.Before(earliestMaintenance.Add(-minIncrementalGCPeriod/2)) {
 			earliestMaintenance = nextCleanup
 		}
 		return nil
